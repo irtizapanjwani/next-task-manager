@@ -12,6 +12,8 @@ model Task {
   title       String
   description String?
   status      String   @default("pending")
+  userId      String   // Link to user who owns this task
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -23,6 +25,7 @@ model User {
   emailVerified DateTime?
   password      String? // Only if using credentials login
   image         String?
+  tasks         Task[]   // User can have many tasks
   accounts      Account[]
   sessions      Session[]
 }

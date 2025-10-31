@@ -1,6 +1,6 @@
 "use client"
 
-import { useTransition } from "react"
+import { useState } from "react"
 
 type Task = {
   id: number
@@ -11,7 +11,10 @@ type Task = {
   updatedAt: string
 }
 
-export default function TaskList({ tasks }: { tasks: Task[] }) {
+export default function TaskList({ tasks, onTaskUpdated }: { 
+  tasks: Task[]
+  onTaskUpdated?: () => void 
+}) {
   if (!tasks?.length) {
     return <p className="text-gray-500 text-sm">No tasks yet.</p>
   }
@@ -19,37 +22,54 @@ export default function TaskList({ tasks }: { tasks: Task[] }) {
   return (
     <ul className="space-y-3">
       {tasks.map((task) => (
-        <TaskItem key={task.id} task={task} />
+        <TaskItem key={task.id} task={task} onTaskUpdated={onTaskUpdated} />
       ))}
     </ul>
   )
 }
 
-function TaskItem({ task }: { task: Task }) {
-  const [isPending, startTransition] = useTransition()
+function TaskItem({ task, onTaskUpdated }: { 
+  task: Task
+  onTaskUpdated?: () => void 
+}) {
+  const [isLoading, setIsLoading] = useState(false)
 
   async function handleDelete() {
-    await fetch(`/api/tasks/${task.id}`, {
-      method: "DELETE",
-    })
-    startTransition(() => {
-      window.location.reload()
-    })
+    setIsLoading(true)
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, {
+        method: "DELETE",
+      })
+      if (res.ok) {
+        onTaskUpdated?.() // Notify parent to refresh tasks
+      }
+    } catch (error) {
+      console.error("Failed to delete task:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   async function handleStatusChange(status: string) {
-    await fetch(`/api/tasks/${task.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: task.title,
-        description: task.description,
-        status,
-      }),
-    })
-    startTransition(() => {
-      window.location.reload()
-    })
+    setIsLoading(true)
+    try {
+      const res = await fetch(`/api/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: task.title,
+          description: task.description,
+          status,
+        }),
+      })
+      if (res.ok) {
+        onTaskUpdated?.() // Notify parent to refresh tasks
+      }
+    } catch (error) {
+      console.error("Failed to update task:", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -66,21 +86,24 @@ function TaskItem({ task }: { task: Task }) {
       <div className="flex gap-2">
         <button
           onClick={() => handleStatusChange("done")}
-          className="bg-green-500 text-white px-3 py-1 rounded text-sm cursor-pointer"
+          disabled={isLoading}
+          className="bg-green-500 text-white px-3 py-1 rounded text-sm cursor-pointer disabled:opacity-50"
         >
           Done
         </button>
         <button
           onClick={() => handleStatusChange("in-progress")}
-          className="bg-orange-500 text-white px-3 py-1 rounded text-sm cursor-pointer"
+          disabled={isLoading}
+          className="bg-orange-500 text-white px-3 py-1 rounded text-sm cursor-pointer disabled:opacity-50"
         >
           In progress
         </button>
         <button
           onClick={handleDelete}
-          className="bg-red-500 text-white px-3 py-1 rounded text-sm cursor-pointer"
+          disabled={isLoading}
+          className="bg-red-500 text-white px-3 py-1 rounded text-sm cursor-pointer disabled:opacity-50"
         >
-          {isPending ? "..." : "Delete"}
+          {isLoading ? "..." : "Delete"}
         </button>
       </div>
     </li>

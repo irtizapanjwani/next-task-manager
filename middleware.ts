@@ -6,11 +6,18 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token, req }) => {
+        // Allow access to auth pages even without token
+        if (req.nextUrl.pathname.startsWith('/auth/')) {
+          return true
+        }
+        // Require token for protected routes
+        return !!token
+      },
     },
   }
 )
 
 export const config = {
-  matcher: ["/tasks/:path*", "/api/tasks/:path*"]
+  matcher: ["/api/tasks/:path*"] // Only protect API routes, not pages
 }

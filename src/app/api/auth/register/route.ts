@@ -12,11 +12,29 @@ export async function POST(req: Request) {
       )
     }
 
+    // Validate email format
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: "Please enter a valid email address" },
+        { status: 400 }
+      )
+    }
+
+    // Validate password strength
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+    if (!passwordRegex.test(password)) {
+      return NextResponse.json(
+        { error: "Password must be at least 8 characters with uppercase, lowercase, number, and special character (@$!%*?&)" },
+        { status: 400 }
+      )
+    }
+
     // Dynamic import to avoid module loading issues
     const { prisma } = await import("@/lib/prisma")
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await (prisma as any).user.findUnique({
       where: { email },
     })
 
@@ -29,7 +47,7 @@ export async function POST(req: Request) {
 
     // Hash password and create user
     const hashedPassword = await bcrypt.hash(password, 10)
-    const user = await prisma.user.create({
+    const user = await (prisma as any).user.create({
       data: {
         name,
         email,

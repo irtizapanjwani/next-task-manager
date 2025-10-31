@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
@@ -10,11 +9,18 @@ export const dynamic = "force-dynamic"
 export default async function TasksPage() {
     const session = await getServerSession(authOptions)
     
-    if (!session) {
+    if (!session?.user?.id) {
         redirect("/auth/signin")
     }
 
+    // Dynamic import to avoid Prisma client issues
+    const { prisma } = await import("@/lib/prisma")
+
+    // Only get tasks for the current user
     const tasks = await prisma.task.findMany({
+        where: {
+            userId: session.user.id, // Filter by current user's ID
+        } as any,
         orderBy: { createdAt: "desc" },
     })
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import TaskList from "./task-list"
 import AddTaskForm from "./task-form"
 import TaskSearch from "./task-search"
@@ -18,6 +18,22 @@ export default function TasksPageClient({ initialTasks }: { initialTasks: Task[]
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [isSearching, setIsSearching] = useState(false)
 
+  const refreshTasks = useCallback(async () => {
+    try {
+      const res = await fetch('/api/tasks')
+      if (res.ok) {
+        const newTasks = await res.json()
+        setTasks(newTasks)
+        if (!isSearching) {
+          // Update initial tasks reference for clear search
+          initialTasks.splice(0, initialTasks.length, ...newTasks)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh tasks:', error)
+    }
+  }, [isSearching])
+
   const handleSearchResults = (searchResults: Task[]) => {
     setTasks(searchResults)
     setIsSearching(true)
@@ -28,9 +44,21 @@ export default function TasksPageClient({ initialTasks }: { initialTasks: Task[]
     setIsSearching(false)
   }
 
+  const handleTaskAdded = () => {
+    if (!isSearching) {
+      refreshTasks()
+    }
+  }
+
+  const handleTaskUpdated = () => {
+    if (!isSearching) {
+      refreshTasks()
+    }
+  }
+
   return (
     <>
-      <AddTaskForm />
+      <AddTaskForm onTaskAdded={handleTaskAdded} />
       
       <div className="space-y-4">
         <TaskSearch 
@@ -52,7 +80,7 @@ export default function TasksPageClient({ initialTasks }: { initialTasks: Task[]
           </div>
         )}
         
-        <TaskList tasks={tasks} />
+        <TaskList tasks={tasks} onTaskUpdated={handleTaskUpdated} />
       </div>
     </>
   )
