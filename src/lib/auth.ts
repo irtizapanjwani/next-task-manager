@@ -43,12 +43,17 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
+    maxAge: 24 * 60 * 60, // 24 hours (in seconds)
+    // maxAge: 7 * 24 * 60 * 60, // 7 days
+    // maxAge: 30 * 24 * 60 * 60, // 30 days (default)
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
       }
+      // Set custom expiry (optional - maxAge above controls this)
+      // token.exp = Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
       return token
     },
     async session({ session, token }) {
